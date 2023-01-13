@@ -9,6 +9,7 @@ pycocotools-windows
 --upgrade setuptools pip wheel
 nvidia-pyindex
 nvidia-cuda-runtime-cu12
+chardet
 -------------------------------------------------
 !git clone 
 
@@ -29,12 +30,6 @@ conda env create --name {name} --file=environment.yml
 
 To activate the environment:
 conda activate {name} #CUI
--------------------------------------------------
-conda install cuda -c nvidia
--------------------------------------------------
-conda install -c anaconda cudatoolkit=10.1
--------------------------------------------------
-conda install -c conda-forge pytorch-gpu
 -------------------------------------------------
 pip3 install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu117
 
