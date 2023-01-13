@@ -1,0 +1,27 @@
+!pip install
+
+scikit-learn
+numpy
+opencv-python
+alfred-py
+nbnb
+-------------------------------------------------
+!git clone 
+
+https://github.com/nwojke/deep_sort.git
+https://github.com/WongKinYiu/yolov7.git
+-------------------------------------------------
+cd yolov7
+
+pip install requirements.txt
+-------------------------------------------------
+Manually installed yolov7-e6e.pt from source
+
+Otherwise:
+wget https://github.com/WongKinYiu/yolov7/releases/download/v0.1/yolov7-e6e.pt
+-------------------------------------------------
+To recreate the conda environment:
+conda env create -f environment.yml -n {name} #CUI
+
+To activate the environment:
+conda activate {name} #CUI
