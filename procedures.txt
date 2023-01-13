@@ -5,6 +5,10 @@ numpy
 opencv-python
 alfred-py
 nbnb
+pycocotools-windows
+--upgrade setuptools pip wheel
+nvidia-pyindex
+nvidia-cuda-runtime-cu12
 -------------------------------------------------
 !git clone 
 
@@ -21,7 +25,17 @@ Otherwise:
 wget https://github.com/WongKinYiu/yolov7/releases/download/v0.1/yolov7-e6e.pt
 -------------------------------------------------
 To recreate the conda environment:
-conda env create -f environment.yml -n {name} #CUI
+conda env create --name {name} --file=environment.yml
 
 To activate the environment:
 conda activate {name} #CUI
+-------------------------------------------------
+conda install cuda -c nvidia
+-------------------------------------------------
+conda install -c anaconda cudatoolkit=10.1
+-------------------------------------------------
+conda install -c conda-forge pytorch-gpu
+-------------------------------------------------
+pip3 install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu117
+
+https://pytorch.org/get-started/locally/
