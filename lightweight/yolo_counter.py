@@ -14,7 +14,7 @@ ap.add_argument("-c", "--config", type=str, required=True,
 	help="path to YOLO Config file, ends in .cfg; string")
 ap.add_argument("-l", "--labels", type=str, required=True,
 	help="path to Labels file, ends in .names; string")
-ap.add_argument("-p", "--videoPath", type=str, nargs="+",
+ap.add_argument("-p", "--videoPath", type=str,
 	help="path to video; ends in .mp4, can have multiple files; string")
 ap.add_argument("-b", "--webcam", type=str, default="False",
     help="specify if you are using a camera. leave empty/False if using video")

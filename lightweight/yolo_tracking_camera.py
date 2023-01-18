@@ -79,6 +79,5 @@ def post_process(img, outputs, conf):
             cv.putText(img, text, (x, y - 5), cv.FONT_HERSHEY_SIMPLEX, 0.5, color, 1)
             cv.putText(img, "People: " + str(int(id)), (400,50), cv.FONT_HERSHEY_SIMPLEX, 2, color, 2)
             
-
 #==============EXIT CODES================
 # 1: No Camera Input
