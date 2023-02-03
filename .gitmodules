@@ -4,3 +4,6 @@
 [submodule "yolov7"]
 	path = yolov7
 	url = https://github.com/WongKinYiu/yolov7
+[submodule "yolov7-deepsort-tracking"]
+	path = yolov7-deepsort-tracking
+	url = https://github.com/deshwalmahesh/yolov7-deepsort-tracking/
