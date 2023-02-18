@@ -41,6 +41,19 @@ class YOLOv7_DeepSORT:
     Class to Wrap ANY detector  of YOLO type with DeepSORT
     '''
 
+    def depth_bound(self, x, y):
+        if (x < 0):
+            x = 0
+        if (y < 0):
+            y = 0
+        if (x >= 600):
+            x = 599
+        if (y >= 400):
+            y = 399
+        return x, y
+
+
+
     def __init__(self, reID_model_path:str, detector, max_cosine_distance:float=0.4, nn_budget:float=None, nms_max_overlap:float=1.0,
     coco_names_path:str ="./io_data/input/classes/coco.names",  ):
         '''
@@ -165,21 +178,34 @@ class YOLOv7_DeepSORT:
                 cv2.putText(frame, class_name + " : " + str(track.track_id),(int(bbox[0]), int(bbox[1]-11)),0, 0.6, (255,255,255),1, lineType=cv2.LINE_AA)    
                 if class_name == "stop sign":
                     x, y = ((bbox[2]+bbox[0])/2),((bbox[3]+bbox[1])/2)
+                    x, y = self.depth_bound(x, y)
                     distance = depth_frame[int(y),int(x)]
+                    steering_left, steering_right = 38, 135
+                    steering_ratio = (steering_right - steering_left)/(width-0)
+                    steering = int(steering_left + (int(x)-0) * steering_ratio)
+
+                    print(f"steering: {steering} || x_value : {int(x)} || distance: {distance}")
+                    self.kit.servo[0].angle = steering
+
+                    if distance > 1000:
+                        self.kit.servo[1].angle = 119
+                    else:
+                        self.kit.servo[1].angle = 110
+
                     cv2.circle(frame, (int(x),int(y)), radius=5, color=[255,150,0], thickness=-1)
                     if (x < left_bound):
-                        cv2.putText(frame, 'LEFT', (50,50), cv2.FONT_HERSHEY_COMPLEX, 1.5, [0,0,0], 1, cv2.LINE_AA)
+                        cv2.putText(frame, 'LEFT', (0,20), cv2.FONT_HERSHEY_COMPLEX, 0.5, [0,0,0], 1, cv2.LINE_AA)
                         print("STOP SIGN IS LEFT OF MIDDLE")
-                        self.kit.servo[0].angle = 38
+                        # self.kit.servo[0].angle = steering
                     elif (x > right_bound):
-                        cv2.putText(frame, 'RIGHT', (50,50), cv2.FONT_HERSHEY_COMPLEX, 1.5, [0,0,0], 1, cv2.LINE_AA)
+                        cv2.putText(frame, 'RIGHT', (0,20), cv2.FONT_HERSHEY_COMPLEX, 0.5, [0,0,0], 1, cv2.LINE_AA)
                         print("STOP SIGN IS RIGHT OF MIDDLE")
-                        self.kit.servo[0].angle = 135
+                        # self.kit.servo[0].angle = steering
                     else:
-                        cv2.putText(frame, 'MIDDLE', (50,50), cv2.FONT_HERSHEY_COMPLEX, 1.5, [0,0,0], 1, cv2.LINE_AA)
+                        cv2.putText(frame, 'MIDDLE', (0,20), cv2.FONT_HERSHEY_COMPLEX, 0.5, [0,0,0], 1, cv2.LINE_AA)
                         print("STOP SIGN IS RELATIVELY IN THE CENTER")
-                        self.kit.servo[0].angle = 86
-                    cv2.putText(frame, "{}mm".format(distance), (200,100), cv2.FONT_HERSHEY_COMPLEX, 2, (0,0,0), 2)
+                        # self.kit.servo[0].angle = steering
+                    cv2.putText(frame, "{}mm".format(distance), (int(width/2),20), cv2.FONT_HERSHEY_COMPLEX, 0.7, (0,0,0), 1)
                 if verbose == 2:
                     print("Tracker ID: {}, Class: {},  BBox Coords (xmin, ymin, xmax, ymax): {}".format(str(track.track_id), class_name, (int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[3]))))
                     
@@ -187,9 +213,9 @@ class YOLOv7_DeepSORT:
             if verbose >= 1:
                 fps = 1.0 / (time.time() - start_time) # calculate frames per second of running detections
                 if not count_objects: print(f"Processed frame no: {frame_num} || Current FPS: {round(fps,2)}")
-                else: print(f"Processed frame no: {frame_num} || Current FPS: {round(fps,2)} || Objects tracked: {count}")
+                # else: print(f"Processed frame no: {frame_num} || Current FPS: {round(fps,2)} || Objects tracked: {count}")
             
-            cv2.putText(frame, 'FPS: ' + str({round(fps,2)}), (200,50), cv2.FONT_HERSHEY_COMPLEX, 1.5, [0,0,0], 1, cv2.LINE_AA)
+            cv2.putText(frame, 'FPS: ' + str({round(fps,2)}), (width-int(width/9),20), cv2.FONT_HERSHEY_COMPLEX, 0.5, [0,0,0], 1, cv2.LINE_AA)
 
             result = np.asarray(frame)
             result = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)

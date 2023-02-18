@@ -9,8 +9,8 @@ from utils.general import check_img_size, non_max_suppression, apply_classifier,
 from utils.plots import plot_one_box, plot_vert_dot_line
 from utils.torch_utils import select_device, load_classifier,TracedModel
 
-left_bound = 280
-right_bound = 360
+left_bound = 200
+right_bound = 400
 
 class Detector:
 
