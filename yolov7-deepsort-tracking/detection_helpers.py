@@ -39,8 +39,8 @@ class Detector:
         classify: whether to load the second stage classifier model or not
         '''
         self.half = self.device.type != 'cpu'  # half precision only supported on CUDA
-
         self.model = attempt_load(weights, map_location=self.device)  # load FP32 model
+        self.model = self.model.float()
         self.stride = int(self.model.stride.max())  # model stride
         self.imgsz = check_img_size(img_size, s=self.stride)  # check img_size
 

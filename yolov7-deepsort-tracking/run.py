@@ -3,7 +3,7 @@ from tracking_helpers import *
 from  bridge_wrapper import *
 from PIL import Image
 
-detector = Detector(classes = [0,11]) # it'll detect ONLY [person,horses,sports ball]. class = None means detect all classes. List info at: "data/coco.yaml"
+detector = Detector(classes = [11]) # it'll detect ONLY [person,horses,sports ball]. class = None means detect all classes. List info at: "data/coco.yaml"
 detector.load_model('./weights/yolov7-tiny.pt',) # pass the path to the trained weight file
 
 # Initialise  class that binds detector and tracker in one class

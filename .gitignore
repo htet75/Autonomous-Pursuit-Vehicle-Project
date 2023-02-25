@@ -2,3 +2,5 @@ weights/
 yolov7-deepsort-tracking/bazel-0.10.0-dist/
 yolov7-deepsort-tracking/bazel-2.2.0-dist.zip
 yolov7-deepsort-tracking/traced_model.pt
+*/__pycache__
+__pycache__/_

@@ -47,9 +47,9 @@ class YOLOv7_DeepSORT:
         if (y < 0):
             y = 0
         if (x >= 600):
-            x = 599
+            x = 598
         if (y >= 400):
-            y = 399
+            y = 398
         return x, y
 
 
@@ -166,6 +166,9 @@ class YOLOv7_DeepSORT:
             plot_vert_dot_line(left_bound, frame)
             plot_vert_dot_line(right_bound, frame)
             for track in self.tracker.tracks:  # update new findings AKA tracks
+                
+                self.kit.servo[1].angle = 110
+
                 if not track.is_confirmed() or track.time_since_update > 1:
                     continue 
                 bbox = track.to_tlbr()
@@ -179,7 +182,11 @@ class YOLOv7_DeepSORT:
                 if class_name == "stop sign":
                     x, y = ((bbox[2]+bbox[0])/2),((bbox[3]+bbox[1])/2)
                     x, y = self.depth_bound(x, y)
-                    distance = depth_frame[int(y),int(x)]
+                    distSum = 0
+                    avgDist = [(x-1,y+1),(x,y+1),(x+1,y+1),(x-1,y),(x,y),(x+1,y),(x-1,y-1),(x,y-1),(x+1,y-1)]
+                    for ex, ey in avgDist:
+                        distSum = distSum + depth_frame[int(ey), int(ex)]
+                    distance = distSum/9
                     steering_left, steering_right = 38, 135
                     steering_ratio = (steering_right - steering_left)/(width-0)
                     steering = int(steering_left + (int(x)-0) * steering_ratio)
@@ -187,8 +194,8 @@ class YOLOv7_DeepSORT:
                     print(f"steering: {steering} || x_value : {int(x)} || distance: {distance}")
                     self.kit.servo[0].angle = steering
 
-                    if distance > 1000:
-                        self.kit.servo[1].angle = 119
+                    if distance > 600:
+                        self.kit.servo[1].angle = 123
                     else:
                         self.kit.servo[1].angle = 110
 
@@ -206,6 +213,8 @@ class YOLOv7_DeepSORT:
                         print("STOP SIGN IS RELATIVELY IN THE CENTER")
                         # self.kit.servo[0].angle = steering
                     cv2.putText(frame, "{}mm".format(distance), (int(width/2),20), cv2.FONT_HERSHEY_COMPLEX, 0.7, (0,0,0), 1)
+                else:
+                    self.kit.servo[1].angle = 0
                 if verbose == 2:
                     print("Tracker ID: {}, Class: {},  BBox Coords (xmin, ymin, xmax, ymax): {}".format(str(track.track_id), class_name, (int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[3]))))
                     
