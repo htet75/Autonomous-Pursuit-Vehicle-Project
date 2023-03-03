@@ -6,7 +6,7 @@ this case a stop sign, when they walk away and will rotate if they turn to the s
 the trigger.
 
 This repo implements https://github.com/deshwalmahesh/yolov7-deepsort-tracking with the use of a Jetson racecar and Tx2. The rc will follow and stop according to 
-the speed of the person using an intel realsense depth camera d435. This repo makes modifications to the code for use with a remoteless rc and Yolov7.
+the speed of the person using an intel realsense depth camera d435. This repo makes modifications to the code for use with a remoteless rc car and Yolov7.
 
 ##Setup
 ```
