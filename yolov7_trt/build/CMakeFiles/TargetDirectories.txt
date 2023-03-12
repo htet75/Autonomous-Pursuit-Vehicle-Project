@@ -1,0 +1,4 @@
+/media/ameek/jetsonssd/home/EEC174-CUI/tensorrtx/yolov7/build/CMakeFiles/rebuild_cache.dir
+/media/ameek/jetsonssd/home/EEC174-CUI/tensorrtx/yolov7/build/CMakeFiles/edit_cache.dir
+/media/ameek/jetsonssd/home/EEC174-CUI/tensorrtx/yolov7/build/CMakeFiles/myplugins.dir
+/media/ameek/jetsonssd/home/EEC174-CUI/tensorrtx/yolov7/build/CMakeFiles/yolov7.dir
