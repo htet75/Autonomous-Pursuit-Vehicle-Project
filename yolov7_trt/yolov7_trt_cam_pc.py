@@ -27,15 +27,14 @@ import PIL.Image
 
 from trt_pose.draw_objects import DrawObjects
 from trt_pose.parse_objects import ParseObjects
-from realsense_depth import *
 
 # Our python files
 from realsense_depth import *
 # from pose_estimation import *
 
-# from adafruit_servokit import ServoKit
-# import board
-# import busio
+from adafruit_servokit import ServoKit
+import board
+import busio
 
 CONF_THRESH = 0.5
 IOU_THRESHOLD = 0.4
@@ -193,12 +192,12 @@ class YoLov7TRT(object):
         self.model_trt = TRTModule()
         self.model_trt.load_state_dict(torch.load(OPTIMIZED_MODEL))
 
-        # print("Initializing Servos")
-        # i2c_bus1 = (busio.I2C(board.SCL, board.SDA))
-        # print("Initializing ServoKit")
-        # self.kit = ServoKit(channels=16, i2c=i2c_bus1)
-        # self.kit.servo[1].angle = 110 # Set throttle to neutral
-        # self.kit.servo[0].angle = 86 # Center steering
+        print("Initializing Servos")
+        i2c_bus1 = (busio.I2C(board.SCL, board.SDA))
+        print("Initializing ServoKit")
+        self.kit = ServoKit(channels=16, i2c=i2c_bus1)
+        self.kit.servo[1].angle = 110 # Set throttle to neutral
+        self.kit.servo[0].angle = 86 # Center steering
 
     def get_keypoints(self, image, human_pose, topology, object_counts, objects, normalized_peaks):
         """Get the keypoints from torch data and put into a dictionary where keys are keypoints
@@ -242,6 +241,7 @@ class YoLov7TRT(object):
         return image[None, ...]
 
 
+    # For keypose estimation
     def execute(self, image):
         data = self.preprocess(image)
         cmap, paf = self.model_trt(data)
@@ -254,10 +254,12 @@ class YoLov7TRT(object):
         # if 'left_shoulder' in keypoints:
         #     print(type(keypoints['left_shoulder']))
         is_active = False
-        if (keypoints.get('left_shoulder', (0, 0))[1] > keypoints.get('left_wrist', (0, 224))[1] or keypoints.get('right_shoulder', (224, 0))[1] > keypoints.get('right_wrist', (224, 224))[1]):
+        if (keypoints.get('left_shoulder', (0, 0))[1] > keypoints.get('left_wrist', (0, 224))[1] 
+        or keypoints.get('right_shoulder', (224, 0))[1] > keypoints.get('right_wrist', (224, 224))[1]):
             is_active = True
+        chest = keypoints.get('neck', (112, 112))
         # image_w = bgr8_to_jpeg(image[:, ::-1, :])
-        return image, is_active
+        return image, is_active, chest
 
     def infer_warmup(self, raw_image_generator):
         threading.Thread.__init__(self)
@@ -319,6 +321,11 @@ class YoLov7TRT(object):
                 )
         return batch_image_raw, end - start
 
+    def is_trigger_inside(self, box, trigger_box):
+        if box[0] < trigger_box[0] and box[2] > trigger_box[2]:
+            return True
+        return False
+
     def infer(self, image, depth_dist):
         threading.Thread.__init__(self)
         # Make self the active context, pushing it on top of the context stack.
@@ -372,15 +379,34 @@ class YoLov7TRT(object):
         # Here we use the first row of output in that batch_size = 1
         output = host_outputs[0]
         # Do postprocess
+        found_stopsign = False
+        found_trigger = False
+        trigger_bound_box = None
+        depth_dist_resize = cv2.resize(depth_dist, (224, 224))
+        # saved_x, saved_y = 0,0
         for i in range(1):
             result_boxes, result_scores, result_classid = self.post_process(
                 output[i * 6001: (i + 1) * 6001], batch_origin_h[i], batch_origin_w[i]
             )
             # Draw rectangles and labels on the original image
-            found_stopsign = False
+            
+            for j in range(len(result_boxes)):
+                if categories[int(result_classid[j])] in ["teddy bear"]:
+                    found_trigger = True
+                    trigger_bound_box = result_boxes[j]
+                    distSum = 0
+                    x, y = (trigger_bound_box[0] + trigger_bound_box[2])/2, (trigger_bound_box[1] + trigger_bound_box[3])/2
+                    x,y = depth_bound(x, y)
+                    avgDist = [(x-1,y+1),(x,y+1),(x+1,y+1),(x-1,y),(x,y),(x+1,y),(x-1,y-1),(x,y-1),(x+1,y-1)]
+                    for ex, ey in avgDist:
+                        distSum = distSum + depth_dist[int(ey), int(ex)]
+                    saved_distance = distSum/9
+                    break
+            
+
             for j in range(len(result_boxes)):
                 box = result_boxes[j]
-                if categories[int(result_classid[j])] == "stop sign" or categories[int(result_classid[j])] == "person": 
+                if categories[int(result_classid[j])] in ["stop sign", "teddy bear"]: 
                     plot_one_box(
                         box,
                         image_raw,
@@ -390,25 +416,64 @@ class YoLov7TRT(object):
                         category = int(result_classid[j])
                     )
                 # Calculating steering and thurbo for RC
-                if categories[int(result_classid[j])] == "stop sign":
+                if categories[int(result_classid[j])] in ["stop sign"]:
                     found_stopsign = True
+
+                if categories[int(result_classid[j])] in ["person"] and found_trigger:
+                    # Skip the change if already found the trigger
+                    if type(trigger_bound_box) == None:
+                        continue
+                    
+                    if not self.is_trigger_inside(result_boxes[j], trigger_bound_box):
+                        continue
+
+                    plot_one_box(
+                        box,
+                        image_raw,
+                        label="{}:{:.2f}".format(
+                            categories[int(result_classid[j])], result_scores[j]
+                        ),
+                        category = int(result_classid[j])
+                    )
+
                     steering, distance = rc_control(box, depth_dist, origin_w)
+                    print(type(image_raw))
                     yolo_result_resize = cv2.resize(image_raw, (224, 224))
-                    image_raw, is_active = self.execute(yolo_result_resize)
+                    # yolo_result_resize = cv2.resize(image_raw[int(box[0]):int(box[2]), int(box[1]):int(box[3])], (224, 224))
+                    image_raw, is_active, chest = self.execute(yolo_result_resize)
+                    # distance = depth_dist[chest[0], chest[1]]
+                    # x, y = chest[0], chest[1]
+                    # distSum = 0
+                    # x,y = depth_bound(x, y)
+                    # avgDist = [(x-1,y+1),(x,y+1),(x+1,y+1),(x-1,y),(x,y),(x+1,y),(x-1,y-1),(x,y-1),(x+1,y-1)]
+                    # for ex, ey in avgDist:
+                    #     distSum = distSum + depth_dist_resize[int(ey), int(ex)]
+                    # distance = distSum/9
                     image_raw = cv2.resize(image_raw, (640, 480))
-                    if is_active:
-                        print("Activating ARM")
+                    max_distance = 1500
+                    
                     cv2.putText(image_raw, "Distance: {:.2f}mm".format(float(distance)), (int(origin_w/4),20), cv2.FONT_HERSHEY_COMPLEX, 0.5, [0,0,0], 1, cv2.LINE_AA)
 
-                    # self.kit.servo[0].angle = steering
+                    self.kit.servo[0].angle = steering
 
-                    # if float(distance) > 600:
-                    #     self.kit.servo[1].angle = 123
-                    # else:
-                    #     self.kit.servo[1].angle = 110
-            if not found_stopsign:
-                print("No Stopsign found")
-                # self.kit.servo[1].angle = 110
+                    if float(saved_distance) > max_distance:
+                        if is_active:
+                            print("Activating ARM")
+                            self.kit.servo[1].angle = 110
+                        else:
+                            self.kit.servo[1].angle = 121
+                    else:
+                        self.kit.servo[1].angle = 110
+
+
+            if found_stopsign:
+                print("Stopsign found")
+                self.kit.servo[1].angle = 110
+            elif found_trigger:
+                print("Active time")
+                
+            else:
+                self.kit.servo[1].angle = 110
                 
         
 
@@ -616,7 +681,7 @@ class inferThread(threading.Thread):
 
     def run(self):
         # Variable to output a file
-        output=None
+        output="floor.avi"
         frames = 0
         start_time = time.time()
 
@@ -645,6 +710,8 @@ class inferThread(threading.Thread):
             cv2.imshow("Recognition result", result)
             #cv2.imshow("Recognition result depth",depth_colormap)
             if cv2.waitKey(1) & 0xFF == ord('q'):
+                print("Closing Program")
+                yolov7_wrapper.kit.servo[1].angle = 110
                 break
 
 class warmUpThread(threading.Thread):
